@@ -4,7 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crypto News & Market</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #1e1e1e;
+      color: white;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: #FFD700;
+    }
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: #333;
+      color: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #555;
+    }
+    th {
+      background: #007BFF;
+    }
+    tr:nth-child(even) {
+      background: #444;
+    }
+    select {
+      margin: 10px;
+      padding: 5px;
+      font-size: 16px;
+    }
+    .up { color: #00FF00; }
+    .down { color: #FF0000; }
+  </style>
 </head>
 <body>
 
@@ -46,7 +83,68 @@
     </tbody>
   </table>
 
-  <script src="script.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      fetchCryptoData();
+      fetchNewsData();
+
+      document.getElementById("news-filter").addEventListener("change", filterNews);
+    });
+
+    async function fetchCryptoData() {
+      const response = await fetch("https://api.binance.com/api/v3/ticker/24hr");
+      const data = await response.json();
+
+      const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT"];
+      const filteredData = data.filter(coin => coins.includes(coin.symbol));
+
+      const tableBody = document.querySelector("#crypto-table tbody");
+      tableBody.innerHTML = "";
+
+      filteredData.forEach(coin => {
+        const changeClass = parseFloat(coin.priceChangePercent) >= 0 ? "up" : "down";
+        tableBody.innerHTML += `
+          <tr>
+            <td>${coin.symbol.replace("USDT", "")}</td>
+            <td>${parseFloat(coin.lastPrice).toFixed(2)}</td>
+            <td class="${changeClass}">${parseFloat(coin.priceChangePercent).toFixed(2)}%</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function fetchNewsData() {
+      const response = await fetch("https://min-api.cryptocompare.com/data/v2/news/?lang=EN");
+      const data = await response.json();
+
+      window.newsData = data.Data || [];
+      updateNewsTable(newsData);
+    }
+
+    function updateNewsTable(news) {
+      const tableBody = document.querySelector("#news-table tbody");
+      tableBody.innerHTML = "";
+
+      news.slice(0, 10).forEach(article => {
+        tableBody.innerHTML += `
+          <tr data-source="${article.source.toLowerCase()}">
+            <td><a href="${article.url}" target="_blank">${article.title}</a></td>
+            <td>${article.source}</td>
+            <td>${new Date(article.published_on * 1000).toLocaleDateString()}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function filterNews() {
+      const filter = document.getElementById("news-filter").value;
+      const rows = document.querySelectorAll("#news-table tbody tr");
+
+      rows.forEach(row => {
+        row.style.display = (filter === "all" || row.dataset.source.includes(filter)) ? "" : "none";
+      });
+    }
+  </script>
 
 </body>
 </html>
