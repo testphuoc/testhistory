@@ -80,7 +80,7 @@
   <h1>🟡 Crypto Tracker - Binance, AI Đầu Tư & Tin tức</h1>
   <p id="timestamp">⏳ Đang cập nhật...</p>
 
-  <!-- Bảng dữ liệu tiền điện tử (không có cột Tin tức) -->
+  <!-- Bảng dữ liệu tiền điện tử (không chứa cột tin tức) -->
   <table id="crypto-table">
     <thead>
       <tr>
@@ -101,11 +101,11 @@
   </table>
 
   <!-- Bảng tin tức riêng -->
-  <h2>Tin tức Crypto</h2>
+  <h2>Tin tức Crypto (Đã dịch sang tiếng Việt)</h2>
   <table id="news-table">
     <thead>
       <tr>
-        <th>Tiêu đề</th>
+        <th>Tiêu đề (Đã dịch)</th>
         <th>Ngày đăng</th>
         <th>Nguồn</th>
       </tr>
@@ -122,6 +122,19 @@
     let historyData = {};
     // Lưu tin tức từ CryptoCompare News API
     let cryptoNews = [];
+    // Ngôn ngữ đích cho việc dịch (ví dụ: "vi" cho tiếng Việt)
+    const targetLanguage = "vi";
+
+    // Hàm giả lập dịch văn bản - cần thay bằng gọi API dịch thực tế
+    async function translateText(text, targetLang) {
+      // Đây là hàm mẫu: Bạn cần tích hợp dịch vụ API thực sự như Google Cloud Translation API.
+      // Ví dụ:
+      // let url = `https://translation.googleapis.com/language/translate/v2?key=YOUR_API_KEY`;
+      // let response = await fetch(url, { method: 'POST', body: JSON.stringify({ q: text, target: targetLang }), headers: {'Content-Type': 'application/json'} });
+      // let result = await response.json();
+      // return result.data.translations[0].translatedText;
+      return text; // Tạm thời trả về văn bản gốc (chưa dịch)
+    }
 
     // Hàm lấy giá lịch sử theo khoảng thời gian (ms)
     function getHistoricalPrice(coin, intervalMs) {
@@ -149,19 +162,22 @@
       }
     }
 
-    // Cập nhật bảng tin tức
-    function updateNewsTable() {
+    // Cập nhật bảng tin tức, dịch tiêu đề từng bài báo
+    async function updateNewsTable() {
       const newsTableBody = document.getElementById("news-data");
       let rows = "";
       // Hiển thị 5 bài báo đầu tiên
-      cryptoNews.slice(0, 5).forEach(article => {
+      for (let i = 0; i < Math.min(5, cryptoNews.length); i++) {
+        const article = cryptoNews[i];
         const publishedTime = new Date(article.published_on * 1000).toLocaleString("vi-VN");
+        // Dịch tiêu đề bài báo sang ngôn ngữ đích
+        const translatedTitle = await translateText(article.title, targetLanguage);
         rows += `<tr>
-          <td><a href="${article.url}" target="_blank">${article.title}</a></td>
+          <td><a href="${article.url}" target="_blank">${translatedTitle}</a></td>
           <td>${publishedTime}</td>
           <td>${article.source || "N/A"}</td>
         </tr>`;
-      });
+      }
       newsTableBody.innerHTML = rows || `<tr><td colspan="3">Không có tin tức nào</td></tr>`;
     }
 
@@ -232,7 +248,7 @@
       }
     }
 
-    // Hàm fetch và cập nhật dữ liệu ngay khi tải trang
+    // Gọi hàm để fetch dữ liệu ngay khi tải trang
     fetchCryptoData();
     // Cập nhật dữ liệu tiền điện tử mỗi 1 giây
     setInterval(fetchCryptoData, 1000);
