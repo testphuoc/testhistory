@@ -10,12 +10,14 @@
         th, td { border: 1px solid black; padding: 10px; }
         .up { color: green; }
         .down { color: red; }
+        .history { max-height: 200px; overflow-y: auto; border: 1px solid gray; padding: 10px; margin: 10px auto; width: 80%; text-align: left; }
     </style>
 </head>
 <body>
 
     <h1>Crypto Tracker - Binance</h1>
-    <h3>Cập nhật giá & đánh giá đầu tư</h3>
+    <h3>Cập nhật giá, lịch sử & đánh giá đầu tư</h3>
+    
     <table>
         <thead>
             <tr>
@@ -28,14 +30,22 @@
         <tbody id="crypto-table"></tbody>
     </table>
 
+    <h3>Lịch sử giá</h3>
+    <div class="history" id="history-log"></div>
+
     <script>
+        let historyLog = [];
+
         async function fetchCryptoData() {
             const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
             const data = await response.json();
             
             const coins = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'];
             const tableBody = document.getElementById('crypto-table');
+            const historyDiv = document.getElementById('history-log');
             tableBody.innerHTML = '';
+
+            let historyEntry = new Date().toLocaleTimeString() + " - ";
 
             coins.forEach(coin => {
                 const coinData = data.find(c => c.symbol === coin);
@@ -55,8 +65,14 @@
                         <td>${aiAnalysis}</td>
                     </tr>`;
                     tableBody.innerHTML += row;
+
+                    historyEntry += `${coin.replace('USDT', '')}: $${price} | `;
                 }
             });
+
+            historyLog.unshift(historyEntry);
+            if (historyLog.length > 10) historyLog.pop();
+            historyDiv.innerHTML = historyLog.join('<br>');
         }
 
         fetchCryptoData();
