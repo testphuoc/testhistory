@@ -15,7 +15,6 @@
     }
     h1, h2 {
       color: #FFD700;
-      margin-bottom: 10px;
     }
     #timestamp {
       font-size: 16px;
@@ -64,16 +63,9 @@
       font-size: 12px;
       color: #ccc;
       display: block;
-      margin-top: 3px;
     }
-    .up {
-      color: #00FF00;
-      font-weight: bold;
-    }
-    .down {
-      color: #FF4500;
-      font-weight: bold;
-    }
+    .up { color: #00FF00; font-weight: bold; }
+    .down { color: #FF4500; font-weight: bold; }
     a {
       color: #FFD700;
       text-decoration: none;
@@ -160,6 +152,10 @@
   <p class="footer">Dữ liệu cập nhật từ Binance API & CryptoCompare API | © Vũ Đức Phước</p>
 
   <script>
+    // ----- PHẦN COIN -----
+    let cryptoData = [];
+    let currentTab = "popular";
+
     // Danh sách 20 coin hot nhất
     const selectedCoins = [
       "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT",
@@ -168,7 +164,7 @@
       "UNIUSDT", "ICPUSDT", "XMRUSDT", "EOSUSDT", "NEARUSDT"
     ];
 
-    // Danh sách tên đầy đủ coin
+    // Tên đầy đủ của coin
     const coinNames = {
       BTC: "Bitcoin",
       ETH: "Ethereum",
@@ -191,9 +187,6 @@
       EOS: "EOS",
       NEAR: "Near Protocol"
     };
-
-    let cryptoData = [];
-    let currentTab = "popular";
 
     async function fetchCryptoData() {
       try {
@@ -221,7 +214,7 @@
       }
 
       const tableBody = document.getElementById("crypto-data");
-      let tableRows = "";
+      let rows = "";
       filteredData.forEach(coin => {
         const symbol = coin.symbol.replace("USDT", "");
         const name = coinNames[symbol] || symbol;
@@ -229,9 +222,9 @@
         const change = parseFloat(coin.priceChangePercent).toFixed(2);
         const volume = Number(coin.volume).toLocaleString("en-US");
         const changeClass = change >= 0 ? "up" : "down";
-        const aiAnalysis = change > 2 ? "Nên đầu tư" : (change < -2 ? "Không nên đầu tư" : "Không chắc chắn");
+        const aiAnalysis = change > 2 ? "Nên đầu tư" : change < -2 ? "Không nên đầu tư" : "Không chắc chắn";
 
-        tableRows += `<tr>
+        rows += `<tr>
           <td>${symbol}<br><small class="coin-name">${name}</small></td>
           <td>${price}</td>
           <td class="${changeClass}">${change}%</td>
@@ -239,19 +232,19 @@
           <td>${aiAnalysis}</td>
         </tr>`;
       });
-      tableBody.innerHTML = tableRows || `<tr><td colspan="5">Không có dữ liệu</td></tr>`;
+      tableBody.innerHTML = rows || `<tr><td colspan="5">Không có dữ liệu</td></tr>`;
     }
 
     function changeTab(tab) {
       currentTab = tab;
       document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
-      // Sử dụng vị trí tab trong DOM: 1: popular, 2: gainers, 3: losers
       if (tab === "popular") document.querySelector(".tabs div:nth-child(1)").classList.add("active");
       else if (tab === "gainers") document.querySelector(".tabs div:nth-child(2)").classList.add("active");
       else if (tab === "losers") document.querySelector(".tabs div:nth-child(3)").classList.add("active");
       updateCryptoTable();
     }
 
+    // ----- PHẦN TIN TỨC -----
     let cryptoNews = [];
     let newsDisplayCount = 5;
 
