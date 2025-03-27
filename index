@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch sử nhập liệu</title>
+</head>
+<body>
+    <h1>Nhập dữ liệu và lưu lịch sử</h1>
+    <input type="text" id="inputData" placeholder="Nhập dữ liệu của bạn">
+    <button onclick="saveData()">Lưu</button>
+    <h2>Lịch sử nhập liệu:</h2>
+    <ul id="historyList"></ul>
+
+    <script>
+        async function saveData() {
+            const input = document.getElementById("inputData").value;
+            if (!input) return alert("Vui lòng nhập dữ liệu!");
+
+            // Tải lịch sử cũ từ JSON trên GitHub
+            let history = [];
+            try {
+                const response = await fetch('history.json');
+                history = await response.json();
+            } catch (error) {
+                console.log("Không tìm thấy dữ liệu cũ, tạo mới...");
+            }
+
+            // Thêm dữ liệu mới vào lịch sử
+            history.push({ time: new Date().toLocaleString(), data: input });
+
+            // Hiển thị lại danh sách
+            updateHistory(history);
+
+            // Lưu vào file JSON (Chỉ có thể làm thủ công trên GitHub)
+            alert("Dữ liệu đã lưu, nhưng bạn cần cập nhật file history.json trên GitHub!");
+        }
+
+        function updateHistory(history) {
+            const historyList = document.getElementById("historyList");
+            historyList.innerHTML = "";
+            history.forEach(item => {
+                const li = document.createElement("li");
+                li.textContent = `${item.time}: ${item.data}`;
+                historyList.appendChild(li);
+            });
+        }
+
+        // Tải dữ liệu khi mở trang
+        async function loadHistory() {
+            try {
+                const response = await fetch('history.json');
+                const history = await response.json();
+                updateHistory(history);
+            } catch (error) {
+                console.log("Không có lịch sử cũ.");
+            }
+        }
+        loadHistory();
+    </script>
+</body>
+</html>
