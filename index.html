@@ -5,13 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giá Coin - Binance</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; }
-        h1 { color: #333; }
-        #timestamp { font-size: 16px; color: #666; margin-bottom: 10px; }
-        table { width: 80%; margin: auto; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid black; padding: 10px; text-align: center; }
-        th { background-color: #007BFF; color: white; }
-        .up { color: green; } .down { color: red; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1e1e1e;
+            color: white;
+        }
+        h1 { color: #FFD700; }
+        #timestamp { font-size: 16px; color: #ccc; margin-bottom: 10px; }
+        table {
+            width: 80%;
+            margin: auto;
+            border-collapse: collapse;
+            background: #333;
+            color: white;
+        }
+        th, td {
+            border: 1px solid #555;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        .up { color: #00FF00; } 
+        .down { color: #FF4500; }
     </style>
 </head>
 <body>
@@ -39,17 +58,16 @@
                 const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
                 const data = await response.json();
 
-                // Lọc ra một số coin phổ biến
+                // Lọc ra các đồng coin phổ biến
                 const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
                 const filteredData = data.filter(coin => coins.includes(coin.symbol));
 
-                // Lấy thời gian cập nhật hiện tại
+                // Lấy thời gian hiện tại
                 const now = new Date();
                 const timestamp = now.toLocaleString("vi-VN");
-
                 document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${timestamp}`;
 
-                // Hiển thị dữ liệu
+                // Hiển thị dữ liệu lên bảng
                 let tableRows = "";
                 filteredData.forEach(coin => {
                     let priceChangeClass = coin.priceChangePercent >= 0 ? "up" : "down";
@@ -74,8 +92,8 @@
         // Gọi hàm ngay khi tải trang
         fetchCryptoData();
 
-        // Cập nhật mỗi 60 giây
-        setInterval(fetchCryptoData, 60000);
+        // Cập nhật mỗi giây
+        setInterval(fetchCryptoData, 1000);
     </script>
 
 </body>
