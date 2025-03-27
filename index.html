@@ -6,9 +6,11 @@
     <title>Giá Coin từ Binance</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
-        table { width: 80%; margin: 20px auto; border-collapse: collapse; }
+        table { width: 90%; margin: 20px auto; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 10px; }
         th { background-color: #f4f4f4; }
+        .up { color: green; } .down { color: red; }
+        footer { margin-top: 20px; font-size: 14px; color: gray; }
     </style>
 </head>
 <body>
@@ -18,22 +20,29 @@
             <tr>
                 <th>Coin</th>
                 <th>Giá (USDT)</th>
+                <th>Thay đổi 24h (%)</th>
+                <th>Lịch sử giá</th>
             </tr>
         </thead>
         <tbody id="coinData">
-            <tr><td colspan="2">Đang tải dữ liệu...</td></tr>
+            <tr><td colspan="4">Đang tải dữ liệu...</td></tr>
         </tbody>
     </table>
 
+    <footer>
+        Dữ liệu Copyright © Vũ Đức Phước
+    </footer>
+
     <script>
         const coinList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
-        let prices = {};
+        let prices = {}; 
+        let history = {};
 
         function connectWebSocket() {
             let ws = new WebSocket("wss://stream.binance.com:9443/ws");
-            
+
             ws.onopen = function() {
-                console.log("Kết nối WebSocket thành công!");
+                console.log("WebSocket kết nối!");
                 let msg = {
                     method: "SUBSCRIBE",
                     params: coinList.map(coin => coin.toLowerCase() + "@ticker"),
@@ -45,13 +54,23 @@
             ws.onmessage = function(event) {
                 let data = JSON.parse(event.data);
                 if (data.s && data.c) {
-                    prices[data.s] = data.c;
+                    let coin = data.s;
+                    let price = parseFloat(data.c).toFixed(2);
+                    let percentChange = parseFloat(data.P).toFixed(2);
+
+                    prices[coin] = { price, percentChange };
+
+                    // Lưu lịch sử giá mỗi 10 giây
+                    if (!history[coin]) history[coin] = [];
+                    if (history[coin].length === 5) history[coin].shift();
+                    history[coin].push(price);
+
                     updateTable();
                 }
             };
 
             ws.onerror = function() {
-                console.error("WebSocket gặp lỗi! Đang thử lại...");
+                console.error("Lỗi WebSocket! Đang kết nối lại...");
                 setTimeout(connectWebSocket, 5000);
             };
 
@@ -65,7 +84,16 @@
             let tableBody = document.getElementById("coinData");
             tableBody.innerHTML = "";
             for (let coin of coinList) {
-                let row = `<tr><td>${coin}</td><td>${prices[coin] || "Đang cập nhật..."}</td></tr>`;
+                let data = prices[coin] || {};
+                let changeClass = data.percentChange >= 0 ? "up" : "down";
+                let historyData = history[coin] ? history[coin].join(", ") : "Đang cập nhật...";
+
+                let row = `<tr>
+                    <td>${coin}</td>
+                    <td>${data.price || "Đang cập nhật..."}</td>
+                    <td class="${changeClass}">${data.percentChange || "0.00"}%</td>
+                    <td>${historyData}</td>
+                </tr>`;
                 tableBody.innerHTML += row;
             }
         }
