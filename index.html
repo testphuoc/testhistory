@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Crypto Tracker - Binance, AI Đầu Tư & Tin tức</title>
   <style>
+    /* Style chung */
     body {
       font-family: 'Arial', sans-serif;
       margin: 0;
@@ -24,61 +25,64 @@
       font-weight: bold;
     }
     table {
-      width: 100%;
+      width: 90%;
       margin: 20px auto;
       border-collapse: collapse;
       background: #333;
-      font-size: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 14px;
     }
     th, td {
-      padding: 10px;
-      border: 1px solid #555;
+      padding: 12px;
+      border-bottom: 1px solid #555;
       text-align: center;
     }
     th {
       background-color: #007BFF;
-      color: white;
+    }
+    tr:nth-child(even) {
+      background: #444;
     }
     .up { color: #00FF00; font-weight: bold; }
     .down { color: #FF4500; font-weight: bold; }
+    .loading {
+      font-size: 16px;
+      color: #FFD700;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
 
-  <h1>🟡 Crypto Tracker - Binance</h1>
+  <h1>🟡 Crypto Tracker - Binance, AI Đầu Tư & Tin tức</h1>
   <p id="timestamp">⏳ Đang cập nhật...</p>
 
   <table id="crypto-table">
     <thead>
       <tr>
         <th>Coin</th>
-        <th>Giá hiện tại (USDT)</th>
+        <th>Giá (USDT)</th>
         <th>24h %</th>
-        <th>Khối lượng 24h</th>
+        <th>5 phút</th>
+        <th>15 phút</th>
+        <th>30 phút</th>
+        <th>1 ngày</th>
         <th>AI Đánh giá</th>
-        <th>1 ngày trước</th>
-        <th>2 ngày trước</th>
-        <th>3 ngày trước</th>
-        <th>4 ngày trước</th>
-        <th>5 ngày trước</th>
-        <th>6 ngày trước</th>
-        <th>7 ngày trước</th>
-        <th>8 ngày trước</th>
-        <th>9 ngày trước</th>
-        <th>10 ngày trước</th>
       </tr>
     </thead>
     <tbody id="crypto-data">
-      <tr><td colspan="15">Đang tải dữ liệu...</td></tr>
+      <tr><td colspan="8" class="loading">Đang tải dữ liệu...</td></tr>
     </tbody>
   </table>
 
   <script>
-    let historyData = {}; // Lưu lịch sử giá của từng coin
-
-    function getHistoricalPrice(coin, daysAgo) {
-      const targetTime = Date.now() - daysAgo * 24 * 60 * 60 * 1000;
-      if (!historyData[coin] || historyData[coin].length === 0) return "N/A";
+    let historyData = JSON.parse(localStorage.getItem("cryptoHistory")) || {};
+    
+    function getHistoricalPrice(coin, intervalMs) {
+      const targetTime = Date.now() - intervalMs;
+      if (!historyData[coin]) return "N/A";
       for (let i = historyData[coin].length - 1; i >= 0; i--) {
         if (historyData[coin][i].timestamp <= targetTime) {
           return historyData[coin][i].price;
@@ -90,60 +94,60 @@
     async function fetchCryptoData() {
       try {
         const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+        if (!response.ok) throw new Error("API Binance lỗi!");
         const data = await response.json();
 
         const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
         const filteredData = data.filter(coin => coins.includes(coin.symbol));
 
-        document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${new Date().toLocaleString("vi-VN")}`;
+        const timestamp = new Date().toLocaleString("vi-VN");
+        document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${timestamp}`;
 
-        const tableBody = document.getElementById("crypto-data");
         let tableRows = "";
-
         filteredData.forEach(coin => {
           const symbol = coin.symbol;
-          const coinName = symbol.replace("USDT", "");
           const price = parseFloat(coin.lastPrice).toFixed(2);
           const change = parseFloat(coin.priceChangePercent).toFixed(2);
-          const volume = parseFloat(coin.volume).toFixed(2);
           const priceChangeClass = change >= 0 ? "up" : "down";
 
-          if (!historyData[symbol]) {
-            historyData[symbol] = [];
-          }
+          if (!historyData[symbol]) historyData[symbol] = [];
           historyData[symbol].push({ timestamp: Date.now(), price: price });
-          historyData[symbol] = historyData[symbol].filter(item => item.timestamp >= Date.now() - 10 * 24 * 60 * 60 * 1000);
 
-          let priceHistory = "";
-          for (let i = 1; i <= 10; i++) {
-            priceHistory += `<td>${getHistoricalPrice(symbol, i)}</td>`;
-          }
+          historyData[symbol] = historyData[symbol].filter(item => item.timestamp >= Date.now() - 24 * 60 * 60 * 1000);
+          localStorage.setItem("cryptoHistory", JSON.stringify(historyData));
+
+          const price5m = getHistoricalPrice(symbol, 5 * 60 * 1000);
+          const price15m = getHistoricalPrice(symbol, 15 * 60 * 1000);
+          const price30m = getHistoricalPrice(symbol, 30 * 60 * 1000);
+          const price1d = getHistoricalPrice(symbol, 24 * 60 * 60 * 1000);
 
           let aiAnalysis = "Không chắc chắn";
-          if (change > 2) aiAnalysis = "Nên đầu tư";
-          else if (change < -2) aiAnalysis = "Không nên đầu tư";
+          if (change > 2 && price5m !== "N/A" && price5m < price) aiAnalysis = "Tăng mạnh";
+          else if (change < -2 && price5m !== "N/A" && price5m > price) aiAnalysis = "Giảm mạnh";
 
           tableRows += `
             <tr>
-              <td>${coinName}</td>
+              <td>${symbol.replace("USDT", "")}</td>
               <td>${price}</td>
               <td class="${priceChangeClass}">${change}%</td>
-              <td>${volume}</td>
+              <td>${price5m}</td>
+              <td>${price15m}</td>
+              <td>${price30m}</td>
+              <td>${price1d}</td>
               <td>${aiAnalysis}</td>
-              ${priceHistory}
             </tr>
           `;
         });
 
-        tableBody.innerHTML = tableRows;
+        document.getElementById("crypto-data").innerHTML = tableRows;
       } catch (error) {
-        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="15">⚠️ Lỗi tải dữ liệu</td></tr>`;
-        console.error("Lỗi tải dữ liệu từ Binance:", error);
+        console.error("Lỗi Binance:", error);
+        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="8">⚠️ Không thể tải dữ liệu!</td></tr>`;
       }
     }
 
     fetchCryptoData();
-    setInterval(fetchCryptoData, 60000);
+    setInterval(fetchCryptoData, 5000);
   </script>
 
 </body>
