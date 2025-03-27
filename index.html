@@ -13,29 +13,72 @@
       color: #fff;
       text-align: center;
     }
-    h1, h2 { color: #FFD700; margin-bottom: 10px; }
-    #timestamp { font-size: 16px; color: #ccc; margin-bottom: 20px; font-weight: bold; }
+    h1, h2 {
+      color: #FFD700;
+      margin-bottom: 10px;
+    }
+    #timestamp {
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
     table {
       width: 90%;
       margin: 20px auto;
       border-collapse: collapse;
       background: #333;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       border-radius: 8px;
-      overflow: hidden;
       font-size: 14px;
     }
-    th, td { padding: 12px; border-bottom: 1px solid #555; text-align: center; }
-    th { background-color: #007BFF; }
-    tr:nth-child(even) { background: #444; }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #555;
+      text-align: center;
+    }
+    th {
+      background-color: #007BFF;
+    }
+    tr:nth-child(even) {
+      background: #444;
+    }
+    a {
+      color: #FFD700; /* Màu vàng dễ nhìn hơn */
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a:hover {
+      text-decoration: underline;
+      color: #FFA500;
+    }
     .up { color: #00FF00; font-weight: bold; }
     .down { color: #FF4500; font-weight: bold; }
-    .footer { margin-top: 20px; font-size: 14px; color: #aaa; }
-    button {
-      margin: 10px; padding: 8px 16px; font-size: 14px; cursor: pointer;
-      background-color: #007BFF; color: white; border: none; border-radius: 4px;
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #aaa;
     }
-    button:hover { background-color: #0056b3; }
+    button {
+      margin: 10px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    @media screen and (max-width: 600px) {
+      body { padding: 10px; }
+      h1, h2 { font-size: 20px; }
+      #timestamp { font-size: 14px; }
+      table { width: 100%; font-size: 12px; }
+      th, td { padding: 8px; }
+      button { font-size: 12px; padding: 6px 12px; }
+    }
   </style>
 </head>
 <body>
@@ -43,6 +86,7 @@
   <h1>🟡 Crypto Tracker - Binance, AI Đầu Tư & Tin tức</h1>
   <p id="timestamp">⏳ Đang cập nhật...</p>
 
+  <!-- Bảng dữ liệu tiền điện tử -->
   <table id="crypto-table">
     <thead>
       <tr>
@@ -58,6 +102,7 @@
     </tbody>
   </table>
 
+  <!-- Bảng tin tức -->
   <h2>Tin tức Crypto</h2>
   <table id="news-table">
     <thead>
@@ -65,67 +110,99 @@
         <th>Tiêu đề</th>
         <th>Ngày đăng</th>
         <th>Nguồn</th>
+        <th>Đánh giá AI</th>
       </tr>
     </thead>
     <tbody id="news-data">
-      <tr><td colspan="3">Đang tải tin tức...</td></tr>
+      <tr><td colspan="4">Đang tải tin tức...</td></tr>
     </tbody>
   </table>
 
-  <p class="footer">Dữ liệu cập nhật từ Binance API | © Vũ Đức Phước</p>
+  <button id="news-toggle-btn" onclick="toggleNewsDisplay()">Xem thêm tin tức</button>
+
+  <p class="footer">Dữ liệu cập nhật từ Binance API & CryptoCompare API | © Vũ Đức Phước</p>
 
   <script>
-    async function fetchCryptoData() {
-      try {
-        const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-        if (!response.ok) throw new Error("Lỗi tải dữ liệu từ Binance");
-        const data = await response.json();
-        const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
-        const filteredData = data.filter(coin => coins.includes(coin.symbol));
-        document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${new Date().toLocaleString("vi-VN")}`;
-        const tableBody = document.getElementById("crypto-data");
-        tableBody.innerHTML = filteredData.map(coin => {
-          const change = parseFloat(coin.priceChangePercent).toFixed(2);
-          const priceChangeClass = change >= 0 ? "up" : "down";
-          let aiAnalysis = "Không chắc chắn";
-          if (change > 2) aiAnalysis = "Nên đầu tư";
-          else if (change < -2) aiAnalysis = "Không nên đầu tư";
-          return `<tr>
-            <td>${coin.symbol.replace("USDT", "")}</td>
-            <td>${parseFloat(coin.lastPrice).toFixed(2)}</td>
-            <td class="${priceChangeClass}">${change}%</td>
-            <td>${parseFloat(coin.volume).toFixed(2)}</td>
-            <td>${aiAnalysis}</td>
-          </tr>`;
-        }).join("");
-      } catch (error) {
-        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="5">⚠️ Lỗi tải dữ liệu</td></tr>`;
-        console.error(error);
-      }
-    }
+    let historyData = {};
+    let cryptoNews = [];
+    let newsDisplayCount = 5;
 
     async function fetchNews() {
       try {
         const newsResponse = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
-        if (!newsResponse.ok) throw new Error("Lỗi tải tin tức");
         const newsData = await newsResponse.json();
-        const newsTableBody = document.getElementById("news-data");
-        newsTableBody.innerHTML = newsData.Data.slice(0, 5).map(article => {
-          return `<tr>
-            <td><a href="${article.url}" target="_blank">${article.title}</a></td>
-            <td>${new Date(article.published_on * 1000).toLocaleString("vi-VN")}</td>
-            <td>${article.source || "N/A"}</td>
-          </tr>`;
-        }).join("");
+        cryptoNews = newsData.Data || [];
+        updateNewsTable();
       } catch (error) {
-        document.getElementById("news-data").innerHTML = `<tr><td colspan="3">⚠️ Lỗi tải tin tức</td></tr>`;
-        console.error(error);
+        document.getElementById("news-data").innerHTML = `<tr><td colspan="4">⚠️ Lỗi tải tin tức</td></tr>`;
+      }
+    }
+
+    function evaluateNewsArticle(article) {
+      const len = article.title.length;
+      if (len > 60) return "Tốt";
+      else if (len >= 30) return "Trung bình";
+      else return "Kém";
+    }
+
+    function updateNewsTable() {
+      const newsTableBody = document.getElementById("news-data");
+      let rows = "";
+      const displayedNews = cryptoNews.slice(0, newsDisplayCount);
+      displayedNews.forEach(article => {
+        const publishedTime = new Date(article.published_on * 1000).toLocaleString("vi-VN");
+        const evaluation = evaluateNewsArticle(article);
+        rows += `<tr>
+          <td><a href="${article.url}" target="_blank">${article.title}</a></td>
+          <td>${publishedTime}</td>
+          <td>${article.source || "N/A"}</td>
+          <td>${evaluation}</td>
+        </tr>`;
+      });
+
+      newsTableBody.innerHTML = rows || `<tr><td colspan="4">Không có tin tức nào</td></tr>`;
+      document.getElementById("news-toggle-btn").innerText = (newsDisplayCount < cryptoNews.length) ? "Xem thêm tin tức" : "Thu gọn tin tức";
+    }
+
+    function toggleNewsDisplay() {
+      newsDisplayCount = (newsDisplayCount < cryptoNews.length) ? cryptoNews.length : 5;
+      updateNewsTable();
+    }
+
+    async function fetchCryptoData() {
+      try {
+        const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+        const data = await response.json();
+        const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
+        const filteredData = data.filter(coin => coins.includes(coin.symbol));
+
+        document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${new Date().toLocaleString("vi-VN")}`;
+        const tableBody = document.getElementById("crypto-data");
+        let tableRows = "";
+
+        filteredData.forEach(coin => {
+          const price = parseFloat(coin.lastPrice).toFixed(2);
+          const change = parseFloat(coin.priceChangePercent).toFixed(2);
+          const volume = parseFloat(coin.volume).toFixed(2);
+          const aiAnalysis = change > 2 ? "Nên đầu tư" : change < -2 ? "Không nên đầu tư" : "Không chắc chắn";
+          tableRows += `<tr>
+            <td>${coin.symbol.replace("USDT", "")}</td>
+            <td>${price}</td>
+            <td class="${change >= 0 ? "up" : "down"}">${change}%</td>
+            <td>${volume}</td>
+            <td>${aiAnalysis}</td>
+          </tr>`;
+        });
+
+        tableBody.innerHTML = tableRows;
+      } catch (error) {
+        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="5">⚠️ Lỗi tải dữ liệu</td></tr>`;
       }
     }
 
     fetchCryptoData();
+    setInterval(fetchCryptoData, 1000);
     fetchNews();
-    setInterval(fetchCryptoData, 5000);
     setInterval(fetchNews, 60000);
   </script>
 
