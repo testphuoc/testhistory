@@ -14,7 +14,7 @@
       text-align: center;
     }
     h1, h2 {
-      color: #FFD700; /* Màu vàng */
+      color: #FFD700;
       margin-bottom: 10px;
     }
     #timestamp {
@@ -23,9 +23,27 @@
       margin-bottom: 20px;
       font-weight: bold;
     }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background: #007BFF;
+      color: white;
+      border: none;
+      margin: 0 5px;
+      border-radius: 5px;
+    }
+    .tab.active {
+      background: #FFD700;
+      color: #000;
+    }
     table {
       width: 90%;
-      margin: 20px auto;
+      margin: 0 auto 20px;
       border-collapse: collapse;
       background: #333;
       border-radius: 8px;
@@ -42,8 +60,22 @@
     tr:nth-child(even) {
       background: #444;
     }
+    .coin-name {
+      font-size: 12px;
+      color: #ccc;
+      display: block;
+      margin-top: 3px;
+    }
+    .up {
+      color: #00FF00;
+      font-weight: bold;
+    }
+    .down {
+      color: #FF4500;
+      font-weight: bold;
+    }
     a {
-      color: #FFD700; /* Màu vàng dễ nhìn hơn */
+      color: #FFD700;
       text-decoration: none;
       font-weight: bold;
     }
@@ -51,8 +83,6 @@
       text-decoration: underline;
       color: #FFA500;
     }
-    .up { color: #00FF00; font-weight: bold; }
-    .down { color: #FF4500; font-weight: bold; }
     .footer {
       margin-top: 20px;
       font-size: 14px;
@@ -85,6 +115,13 @@
 
   <h1>🟡 Crypto Tracker - Binance, AI Đầu Tư & Tin tức</h1>
   <p id="timestamp">⏳ Đang cập nhật...</p>
+
+  <!-- Tabs để lọc coin -->
+  <div class="tabs">
+    <div class="tab active" onclick="changeTab('popular')">Phổ biến</div>
+    <div class="tab" onclick="changeTab('gainers')">Tăng giá</div>
+    <div class="tab" onclick="changeTab('losers')">Giảm giá</div>
+  </div>
 
   <!-- Bảng dữ liệu tiền điện tử -->
   <table id="crypto-table">
@@ -123,7 +160,98 @@
   <p class="footer">Dữ liệu cập nhật từ Binance API & CryptoCompare API | © Vũ Đức Phước</p>
 
   <script>
-    let historyData = {};
+    // Danh sách 20 coin hot nhất
+    const selectedCoins = [
+      "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT",
+      "DOGEUSDT", "SOLUSDT", "DOTUSDT", "MATICUSDT", "LTCUSDT",
+      "SHIBUSDT", "AVAXUSDT", "LINKUSDT", "ATOMUSDT", "TRXUSDT",
+      "UNIUSDT", "ICPUSDT", "XMRUSDT", "EOSUSDT", "NEARUSDT"
+    ];
+
+    // Danh sách tên đầy đủ coin
+    const coinNames = {
+      BTC: "Bitcoin",
+      ETH: "Ethereum",
+      BNB: "Binance Coin",
+      ADA: "Cardano",
+      XRP: "Ripple",
+      DOGE: "Dogecoin",
+      SOL: "Solana",
+      DOT: "Polkadot",
+      MATIC: "Polygon",
+      LTC: "Litecoin",
+      SHIB: "Shiba Inu",
+      AVAX: "Avalanche",
+      LINK: "Chainlink",
+      ATOM: "Cosmos",
+      TRX: "TRON",
+      UNI: "Uniswap",
+      ICP: "Internet Computer",
+      XMR: "Monero",
+      EOS: "EOS",
+      NEAR: "Near Protocol"
+    };
+
+    let cryptoData = [];
+    let currentTab = "popular";
+
+    async function fetchCryptoData() {
+      try {
+        const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+        const data = await response.json();
+        cryptoData = data.filter(coin => selectedCoins.includes(coin.symbol));
+        document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${new Date().toLocaleString("vi-VN")}`;
+        updateCryptoTable();
+      } catch (error) {
+        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="5">⚠️ Lỗi tải dữ liệu</td></tr>`;
+        console.error(error);
+      }
+    }
+
+    function updateCryptoTable() {
+      let filteredData = [];
+      if (currentTab === "popular") {
+        filteredData = cryptoData;
+      } else if (currentTab === "gainers") {
+        filteredData = cryptoData.filter(coin => parseFloat(coin.priceChangePercent) > 0)
+          .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
+      } else if (currentTab === "losers") {
+        filteredData = cryptoData.filter(coin => parseFloat(coin.priceChangePercent) < 0)
+          .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent));
+      }
+
+      const tableBody = document.getElementById("crypto-data");
+      let tableRows = "";
+      filteredData.forEach(coin => {
+        const symbol = coin.symbol.replace("USDT", "");
+        const name = coinNames[symbol] || symbol;
+        const price = Number(coin.lastPrice).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const change = parseFloat(coin.priceChangePercent).toFixed(2);
+        const volume = Number(coin.volume).toLocaleString("en-US");
+        const changeClass = change >= 0 ? "up" : "down";
+        const aiAnalysis = change > 2 ? "Nên đầu tư" : (change < -2 ? "Không nên đầu tư" : "Không chắc chắn");
+
+        tableRows += `<tr>
+          <td>${symbol}<br><small class="coin-name">${name}</small></td>
+          <td>${price}</td>
+          <td class="${changeClass}">${change}%</td>
+          <td>${volume}</td>
+          <td>${aiAnalysis}</td>
+        </tr>`;
+      });
+      tableBody.innerHTML = tableRows || `<tr><td colspan="5">Không có dữ liệu</td></tr>`;
+    }
+
+    function changeTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+      // Sử dụng vị trí tab trong DOM: 1: popular, 2: gainers, 3: losers
+      if (tab === "popular") document.querySelector(".tabs div:nth-child(1)").classList.add("active");
+      else if (tab === "gainers") document.querySelector(".tabs div:nth-child(2)").classList.add("active");
+      else if (tab === "losers") document.querySelector(".tabs div:nth-child(3)").classList.add("active");
+      updateCryptoTable();
+    }
+
     let cryptoNews = [];
     let newsDisplayCount = 5;
 
@@ -135,6 +263,7 @@
         updateNewsTable();
       } catch (error) {
         document.getElementById("news-data").innerHTML = `<tr><td colspan="4">⚠️ Lỗi tải tin tức</td></tr>`;
+        console.error(error);
       }
     }
 
@@ -148,8 +277,7 @@
     function updateNewsTable() {
       const newsTableBody = document.getElementById("news-data");
       let rows = "";
-      const displayedNews = cryptoNews.slice(0, newsDisplayCount);
-      displayedNews.forEach(article => {
+      cryptoNews.slice(0, newsDisplayCount).forEach(article => {
         const publishedTime = new Date(article.published_on * 1000).toLocaleString("vi-VN");
         const evaluation = evaluateNewsArticle(article);
         rows += `<tr>
@@ -159,7 +287,6 @@
           <td>${evaluation}</td>
         </tr>`;
       });
-
       newsTableBody.innerHTML = rows || `<tr><td colspan="4">Không có tin tức nào</td></tr>`;
       document.getElementById("news-toggle-btn").innerText = (newsDisplayCount < cryptoNews.length) ? "Xem thêm tin tức" : "Thu gọn tin tức";
     }
@@ -169,42 +296,15 @@
       updateNewsTable();
     }
 
-    async function fetchCryptoData() {
-      try {
-        const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-        const data = await response.json();
-        const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
-        const filteredData = data.filter(coin => coins.includes(coin.symbol));
-
-        document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${new Date().toLocaleString("vi-VN")}`;
-        const tableBody = document.getElementById("crypto-data");
-        let tableRows = "";
-
-        filteredData.forEach(coin => {
-          const price = parseFloat(coin.lastPrice).toFixed(2);
-          const change = parseFloat(coin.priceChangePercent).toFixed(2);
-          const volume = parseFloat(coin.volume).toFixed(2);
-          const aiAnalysis = change > 2 ? "Nên đầu tư" : change < -2 ? "Không nên đầu tư" : "Không chắc chắn";
-          tableRows += `<tr>
-            <td>${coin.symbol.replace("USDT", "")}</td>
-            <td>${price}</td>
-            <td class="${change >= 0 ? "up" : "down"}">${change}%</td>
-            <td>${volume}</td>
-            <td>${aiAnalysis}</td>
-          </tr>`;
-        });
-
-        tableBody.innerHTML = tableRows;
-      } catch (error) {
-        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="5">⚠️ Lỗi tải dữ liệu</td></tr>`;
-      }
-    }
-
     fetchCryptoData();
-    setInterval(fetchCryptoData, 1000);
+    setInterval(fetchCryptoData, 10000);
     fetchNews();
     setInterval(fetchNews, 60000);
   </script>
+
+  <button id="news-toggle-btn" onclick="toggleNewsDisplay()">Xem thêm tin tức</button>
+
+  <p class="footer">Dữ liệu cập nhật từ Binance API & CryptoCompare API | © Vũ Đức Phước</p>
 
 </body>
 </html>
