@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giá Coin từ Binance</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        table { width: 80%; margin: 20px auto; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 10px; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h2>Giá Coin từ Binance</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Coin</th>
+                <th>Giá (USDT)</th>
+            </tr>
+        </thead>
+        <tbody id="coinData">
+            <tr><td colspan="2">Đang tải dữ liệu...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        const coinList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
+        let prices = {};
+
+        function connectWebSocket() {
+            let ws = new WebSocket("wss://stream.binance.com:9443/ws");
+            
+            ws.onopen = function() {
+                console.log("Kết nối WebSocket thành công!");
+                let msg = {
+                    method: "SUBSCRIBE",
+                    params: coinList.map(coin => coin.toLowerCase() + "@ticker"),
+                    id: 1
+                };
+                ws.send(JSON.stringify(msg));
+            };
+
+            ws.onmessage = function(event) {
+                let data = JSON.parse(event.data);
+                if (data.s && data.c) {
+                    prices[data.s] = data.c;
+                    updateTable();
+                }
+            };
+
+            ws.onerror = function() {
+                console.error("WebSocket gặp lỗi! Đang thử lại...");
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onclose = function() {
+                console.warn("WebSocket bị đóng! Đang thử lại...");
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+
+        function updateTable() {
+            let tableBody = document.getElementById("coinData");
+            tableBody.innerHTML = "";
+            for (let coin of coinList) {
+                let row = `<tr><td>${coin}</td><td>${prices[coin] || "Đang cập nhật..."}</td></tr>`;
+                tableBody.innerHTML += row;
+            }
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>
