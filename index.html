@@ -3,85 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Tracker - Binance</title>
+    <title>Giá Coin - Binance</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        table { width: 80%; margin: 20px auto; border-collapse: collapse; }
-        th, td { border: 1px solid black; padding: 10px; }
-        .up { color: green; }
-        .down { color: red; }
-        .history { max-height: 200px; overflow-y: auto; border: 1px solid gray; padding: 10px; margin: 10px auto; width: 80%; text-align: left; }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; }
+        h1 { color: #333; }
+        #timestamp { font-size: 16px; color: #666; margin-bottom: 10px; }
+        table { width: 80%; margin: auto; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid black; padding: 10px; text-align: center; }
+        th { background-color: #007BFF; color: white; }
+        .up { color: green; } .down { color: red; }
     </style>
 </head>
 <body>
 
-    <h1>Crypto Tracker - Binance</h1>
-    <h3>Cập nhật giá, lịch sử & đánh giá đầu tư</h3>
-    
+    <h1>🟡 Giá Coin Theo Thời Gian Thực</h1>
+    <p id="timestamp">⏳ Đang cập nhật...</p>
+
     <table>
         <thead>
             <tr>
                 <th>Coin</th>
-                <th>Giá hiện tại (USD)</th>
-                <th>Thay đổi 24h</th>
-                <th>Đánh giá AI</th>
+                <th>Giá (USDT)</th>
+                <th>24h %</th>
+                <th>Khối lượng 24h</th>
             </tr>
         </thead>
-        <tbody id="crypto-table"></tbody>
+        <tbody id="crypto-data">
+            <tr><td colspan="4">Đang tải dữ liệu...</td></tr>
+        </tbody>
     </table>
 
-    <h3>Lịch sử giá</h3>
-    <div class="history" id="history-log"></div>
-
     <script>
-        let historyLog = [];
-
         async function fetchCryptoData() {
-            const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-            const data = await response.json();
-            
-            const coins = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'];
-            const tableBody = document.getElementById('crypto-table');
-            const historyDiv = document.getElementById('history-log');
-            tableBody.innerHTML = '';
+            try {
+                const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+                const data = await response.json();
 
-            let historyEntry = new Date().toLocaleTimeString() + " - ";
+                // Lọc ra một số coin phổ biến
+                const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
+                const filteredData = data.filter(coin => coins.includes(coin.symbol));
 
-            coins.forEach(coin => {
-                const coinData = data.find(c => c.symbol === coin);
-                if (coinData) {
-                    const price = parseFloat(coinData.lastPrice).toFixed(2);
-                    const change = parseFloat(coinData.priceChangePercent).toFixed(2);
-                    const className = change >= 0 ? 'up' : 'down';
-                    
-                    let aiAnalysis = 'Không chắc chắn';
-                    if (change > 2) aiAnalysis = 'Nên đầu tư';
-                    else if (change < -2) aiAnalysis = 'Không nên đầu tư';
+                // Lấy thời gian cập nhật hiện tại
+                const now = new Date();
+                const timestamp = now.toLocaleString("vi-VN");
 
-                    const row = `<tr>
-                        <td>${coin.replace('USDT', '')}</td>
-                        <td>${price}</td>
-                        <td class="${className}">${change}%</td>
-                        <td>${aiAnalysis}</td>
-                    </tr>`;
-                    tableBody.innerHTML += row;
+                document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${timestamp}`;
 
-                    historyEntry += `${coin.replace('USDT', '')}: $${price} | `;
-                }
-            });
+                // Hiển thị dữ liệu
+                let tableRows = "";
+                filteredData.forEach(coin => {
+                    let priceChangeClass = coin.priceChangePercent >= 0 ? "up" : "down";
+                    tableRows += `
+                        <tr>
+                            <td>${coin.symbol.replace("USDT", "")}</td>
+                            <td>${parseFloat(coin.lastPrice).toFixed(2)}</td>
+                            <td class="${priceChangeClass}">${parseFloat(coin.priceChangePercent).toFixed(2)}%</td>
+                            <td>${parseFloat(coin.volume).toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
 
-            historyLog.unshift(historyEntry);
-            if (historyLog.length > 10) historyLog.pop();
-            historyDiv.innerHTML = historyLog.join('<br>');
+                document.getElementById("crypto-data").innerHTML = tableRows;
+
+            } catch (error) {
+                document.getElementById("crypto-data").innerHTML = `<tr><td colspan="4">⚠️ Lỗi tải dữ liệu</td></tr>`;
+                console.error("Lỗi tải dữ liệu từ Binance:", error);
+            }
         }
 
+        // Gọi hàm ngay khi tải trang
         fetchCryptoData();
-        setInterval(fetchCryptoData, 60000); // Cập nhật mỗi phút
-    </script>
 
-    <footer>
-        <p>© 2025 Dữ liệu bản quyền Vũ Đức Phước</p>
-    </footer>
+        // Cập nhật mỗi 60 giây
+        setInterval(fetchCryptoData, 60000);
+    </script>
 
 </body>
 </html>
