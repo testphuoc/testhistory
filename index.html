@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Tracker - Binance & AI Đầu Tư</title>
+  <title>Crypto Tracker - Binance & AI Đầu Tư + Tin tức</title>
   <style>
-    /* Style cơ bản */
+    /* Style chung */
     body {
       font-family: Arial, sans-serif;
       text-align: center;
@@ -30,7 +30,7 @@
       border-collapse: collapse;
       background: #333;
       color: white;
-      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
       border-radius: 8px;
       overflow: hidden;
       font-size: 14px;
@@ -60,30 +60,19 @@
       font-size: 14px;
       color: #aaa;
     }
-    /* Responsive: điều chỉnh cho màn hình nhỏ */
+    /* Responsive: màn hình nhỏ */
     @media screen and (max-width: 600px) {
-      body {
-        padding: 10px;
-      }
-      h1 {
-        font-size: 22px;
-      }
-      #timestamp {
-        font-size: 14px;
-      }
-      table {
-        width: 100%;
-        font-size: 12px;
-      }
-      th, td {
-        padding: 8px;
-      }
+      body { padding: 10px; }
+      h1 { font-size: 22px; }
+      #timestamp { font-size: 14px; }
+      table { width: 100%; font-size: 12px; }
+      th, td { padding: 8px; }
     }
   </style>
 </head>
 <body>
 
-  <h1>🟡 Crypto Tracker - Binance & AI Đầu Tư</h1>
+  <h1>🟡 Crypto Tracker - Binance, AI Đầu Tư & Tin tức</h1>
   <p id="timestamp">⏳ Đang cập nhật...</p>
 
   <table>
@@ -98,28 +87,56 @@
         <th>15 phút</th>
         <th>30 phút</th>
         <th>1 ngày</th>
+        <th>Tin tức</th>
       </tr>
     </thead>
     <tbody id="crypto-data">
-      <tr><td colspan="9">Đang tải dữ liệu...</td></tr>
+      <tr><td colspan="10">Đang tải dữ liệu...</td></tr>
     </tbody>
   </table>
 
-  <p class="footer">Dữ liệu cập nhật từ Binance API | © Vũ Đức Phước</p>
+  <p class="footer">Dữ liệu cập nhật từ Binance API & CryptoCompare News API | © Vũ Đức Phước</p>
 
   <script>
-    // Đối tượng lưu lịch sử giá cho mỗi coin: { coinSymbol: [ {timestamp, price}, ... ] }
+    // Biến lưu lịch sử giá cho mỗi coin: { symbol: [ {timestamp, price}, ... ] }
     let historyData = {};
+    // Biến lưu tin tức (mảng các bài báo) từ CryptoCompare News API
+    let cryptoNews = [];
 
     // Hàm lấy giá lịch sử dựa trên khoảng thời gian (ms)
     function getHistoricalPrice(coin, intervalMs) {
       const targetTime = Date.now() - intervalMs;
       if (!historyData[coin] || historyData[coin].length === 0) return "N/A";
-      // Duyệt mảng từ cuối về đầu để tìm bản ghi cũ nhất với timestamp <= targetTime
       for (let i = historyData[coin].length - 1; i >= 0; i--) {
         if (historyData[coin][i].timestamp <= targetTime) {
           return historyData[coin][i].price;
         }
+      }
+      return "N/A";
+    }
+
+    // Hàm fetch tin tức từ CryptoCompare News API
+    async function fetchNews() {
+      try {
+        const newsResponse = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+        const newsData = await newsResponse.json();
+        cryptoNews = newsData.Data || [];
+      } catch (error) {
+        console.error("Lỗi tải tin tức:", error);
+        cryptoNews = [];
+      }
+    }
+
+    // Hàm tìm bài báo liên quan đến coin dựa trên tên coin
+    function getNewsForCoin(coinName) {
+      if (cryptoNews.length === 0) return "N/A";
+      // Tìm bài báo có tiêu đề chứa tên coin (không phân biệt chữ hoa thường)
+      const match = cryptoNews.find(article => 
+        article.title.toLowerCase().includes(coinName.toLowerCase()) ||
+        (article.body && article.body.toLowerCase().includes(coinName.toLowerCase()))
+      );
+      if (match) {
+        return `<a href="${match.url}" target="_blank" style="color: #FFD700;">${match.title}</a>`;
       }
       return "N/A";
     }
@@ -133,7 +150,7 @@
         const coins = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "XRPUSDT"];
         const filteredData = data.filter(coin => coins.includes(coin.symbol));
 
-        // Lấy thời gian hiện tại
+        // Cập nhật thời gian hiện tại
         const now = new Date();
         const timestamp = now.toLocaleString("vi-VN");
         document.getElementById("timestamp").innerText = `🕒 Cập nhật lúc: ${timestamp}`;
@@ -168,6 +185,9 @@
           if (change > 2) aiAnalysis = "Nên đầu tư";
           else if (change < -2) aiAnalysis = "Không nên đầu tư";
 
+          // Lấy tin tức liên quan đến coin (dựa trên tên coin)
+          const coinNews = getNewsForCoin(coinName);
+
           tableRows += `
             <tr>
               <td>${coinName}</td>
@@ -179,22 +199,25 @@
               <td>${price15m}</td>
               <td>${price30m}</td>
               <td>${price1d}</td>
+              <td>${coinNews}</td>
             </tr>
           `;
         });
 
         tableBody.innerHTML = tableRows;
-
       } catch (error) {
-        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="9">⚠️ Lỗi tải dữ liệu</td></tr>`;
+        document.getElementById("crypto-data").innerHTML = `<tr><td colspan="10">⚠️ Lỗi tải dữ liệu</td></tr>`;
         console.error("Lỗi tải dữ liệu từ Binance:", error);
       }
     }
 
-    // Gọi hàm ngay khi tải trang
+    // Gọi hàm để fetch dữ liệu ngay khi tải trang
     fetchCryptoData();
-    // Cập nhật mỗi 1 giây
+    // Cập nhật dữ liệu mỗi 1 giây
     setInterval(fetchCryptoData, 1000);
+    // Cập nhật tin tức mỗi 1 phút
+    fetchNews();
+    setInterval(fetchNews, 60000);
   </script>
 
 </body>
