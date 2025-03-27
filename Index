@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhập liệu & Lưu lịch sử</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: auto;
+            padding: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px;
+            cursor: pointer;
+        }
+        ul {
+            padding: 0;
+        }
+        li {
+            list-style: none;
+            background: #f2f2f2;
+            margin: 5px 0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Nhập dữ liệu & Lưu lịch sử</h2>
+    <input type="text" id="inputData" placeholder="Nhập nội dung...">
+    <button onclick="saveData()">Lưu</button>
+
+    <h3>Lịch sử nhập liệu:</h3>
+    <ul id="historyList"></ul>
+
+    <script>
+        // Lấy dữ liệu từ localStorage khi tải trang
+        function loadHistory() {
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            let list = document.getElementById("historyList");
+            list.innerHTML = "";
+            history.forEach(item => {
+                let li = document.createElement("li");
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        }
+
+        // Lưu dữ liệu vào localStorage
+        function saveData() {
+            let input = document.getElementById("inputData").value;
+            if (input.trim() === "") return;
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            history.push(input);
+            localStorage.setItem("history", JSON.stringify(history));
+            document.getElementById("inputData").value = "";
+            loadHistory();
+        }
+
+        // Gọi hàm để hiển thị lịch sử nhập liệu khi mở trang
+        loadHistory();
+    </script>
+
+</body>
+</html>
